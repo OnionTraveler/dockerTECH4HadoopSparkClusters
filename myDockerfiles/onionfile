@@ -1,0 +1,21 @@
+# You ca use 「docker build -f onionfile -t oniontraveler/hadoop_container:19.4.30 .」 to build docker image
+FROM ubuntu:18.04
+
+MAINTAINER oniontraveler <oniontraveler@gmail.com>
+
+WORKDIR /root
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# install openssh-server, wget, and git
+RUN apt-get clean all && apt-get update && apt-get install -y python3.6 ipython3 openssh-server wget git vim
+RUN git clone https://github.com/OnionTraveler/hadoop-2.7.3-InstallPackage.git /tmp/hadoop-2.7.3-InstallPackage
+
+# ssh without key
+RUN ssh-keygen -t rsa -f ~/.ssh/id_rsa -P '' && \
+    cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys && \
+	echo 'sudo docker inspect  --format "{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}" 「容器名稱或容器ID」'  >> containerIP.txt
+
+ENTRYPOINT service ssh restart && /bin/bash
+
+CMD ["sh", "-c", "service ssh start; /bin/bash"]
