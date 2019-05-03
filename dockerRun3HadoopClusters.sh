@@ -1,9 +1,15 @@
 #!/bin/bash
 docker build -f ./myDockerfiles/onionfile -t oniontraveler/hadoop_container:19.5.4 .
 
-docker run -itd --name master --hostname master oniontraveler/hadoop_container:19.5.4
+docker run -itd --name master --hostname -p 50070:50070 -p 8088:8088 -p 8080:8080 master oniontraveler/hadoop_container:19.5.4
 docker run -id --name slaver1 --hostname slaver1 oniontraveler/hadoop_container:19.5.4
 docker run -td --name slaver2 --hostname slaver2 oniontraveler/hadoop_container:19.5.4
+
+
+#========================= (port explanation)
+# -p 50070:50070  -> HDFS
+# -p 8088:8088    -> YARN
+# -p 8080:8080    -> Spark
 
 
 #========================= (docker commands for entering into the container(master or slaver1))
