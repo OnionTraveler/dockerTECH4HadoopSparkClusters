@@ -1,5 +1,5 @@
 #!/bin/bash
-docker build -f ./myDockerfiles/onionfile -t oniontraveler/hadoop_container:19.5.4 .
+[ -e ./myDockerfiles/onionfile ] && echo "The 「onionfile」 has existed" || docker build -f ./myDockerfiles/onionfile -t oniontraveler/hadoop_container:19.5.4 .
 
 docker run -itd --name master --hostname master -p 50070:50070 -p 8088:8088 -p 8080:8080 oniontraveler/hadoop_container:19.5.4
 docker run -id --name slaver1 --hostname slaver1 oniontraveler/hadoop_container:19.5.4
