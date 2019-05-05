@@ -15,3 +15,4 @@ docker run -td --name slaver2 --hostname slaver2 oniontraveler/hadoop_container:
 #========================= (docker commands for entering into the container(master or slaver1))
 # docker exec -it master /bin/bash
 # docker exec -it slaver1 /bin/bash
+
