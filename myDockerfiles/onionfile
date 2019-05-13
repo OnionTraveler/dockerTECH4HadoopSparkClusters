@@ -18,6 +18,6 @@ RUN ssh-keygen -t rsa -f ~/.ssh/id_rsa -P '' && \
     cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys && \
 	echo 'sudo docker inspect  --format "{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}" 「容器名稱或容器ID」'  >> containerIP.txt
 
-ENTRYPOINT service ssh restart && /bin/bash
+ENTRYPOINT source /etc/profile && service ssh restart && /bin/bash
 
 CMD ["sh", "-c", "service ssh start; /bin/bash"]
