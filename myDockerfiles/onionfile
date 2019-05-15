@@ -21,4 +21,4 @@ RUN ssh-keygen -t rsa -f ~/.ssh/id_rsa -P '' && \
 
 ENTRYPOINT ["/bin/bash", "-c", "service ssh start"]
 
-CMD service ssh start && /bin/sh
+CMD service ssh status && /bin/bash
