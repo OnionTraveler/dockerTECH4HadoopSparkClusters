@@ -9,7 +9,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # install openssh-server, wget, and git
 RUN apt-get clean all && apt-get update && apt-get install -y python3.6 ipython3 python3-pip openssh-server wget git vim
-RUN pip3 install sparkdl numpy Pillow keras tensorflow tensorframes pandas kafka tensorflowonspark jieba 
+RUN pip3 install sparkdl numpy Pillow keras==2.2.0 tensorflow==1.10.0 tensorframes pandas kafka tensorflowonspark jieba 
 
 
 RUN git clone https://github.com/OnionTraveler/hadoop-2.7.3-InstallPackage.git /tmp/hadoop-2.7.3-InstallPackage
