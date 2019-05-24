@@ -121,6 +121,12 @@ echo 'SPARK_LOCAL_DIRS=/opt/spark-2.3.1-bin-hadoop2.7/' >> /opt/spark-2.3.1-bin-
 echo 'SPARK_DRIVER_MEMORY=2G' >>  /opt/spark-2.3.1-bin-hadoop2.7/conf/spark-env.sh
 
 
+#========================= (使Spark Streaming的終端不會有過多的正常提示log，但仍對錯誤訊息會留下足跡)
+#「log4j.rootCategory=INFO」 -> 「log4j.rootCategory=ERROR」
+RUN cp /opt/spark/conf/log4j.properties.template /opt/spark/conf/log4j.properties && \
+sed -i "s/log4j.rootCategory=INFO/log4j.rootCategory=ERROR/g" /opt/spark/conf/log4j.properties
+
+
 #========================= (spark啟動時(start-all.sh)其預設會使用"python"這個指令連結，故須將其建立軟連結(導向)至python3使得packages匯入等預設操作不會因python版本不同而出錯)
 RUN ln -s /usr/bin/python3 /usr/bin/python && ln -s /usr/bin/pip3 /usr/bin/pip
 
