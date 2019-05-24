@@ -121,12 +121,6 @@ echo 'SPARK_LOCAL_DIRS=/opt/spark-2.3.1-bin-hadoop2.7/' >> /opt/spark-2.3.1-bin-
 echo 'SPARK_DRIVER_MEMORY=2G' >>  /opt/spark-2.3.1-bin-hadoop2.7/conf/spark-env.sh
 
 
-#========================= (spark啟動時(start-all.sh)所讀取節點IP的位置設定) (那空白不能略!!)
-RUN cp /opt/spark-2.3.1-bin-hadoop2.7/conf/slaves.template /opt/spark-2.3.1-bin-hadoop2.7/conf/slaves
-RUN echo "$ipslaver1" >> /opt/spark-2.3.1-bin-hadoop2.7/conf/slaves && \
-echo "$ipslaver2" >> /opt/spark-2.3.1-bin-hadoop2.7/conf/slaves
-
-
 #========================= (spark啟動時(start-all.sh)其預設會使用"python"這個指令連結，故須將其建立軟連結(導向)至python3使得packages匯入等預設操作不會因python版本不同而出錯)
 RUN ln -s /usr/bin/python3 /usr/bin/python && ln -s /usr/bin/pip3 /usr/bin/pip
 
