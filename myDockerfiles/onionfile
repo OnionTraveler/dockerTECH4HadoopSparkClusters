@@ -1,24 +1,154 @@
-# You ca use 「docker build -f onionfile -t oniontraveler/hadoop_container:19.4.30 .」 to build docker image
 FROM ubuntu:18.04
 
 MAINTAINER oniontraveler <oniontraveler@gmail.com>
 
 WORKDIR /root
 
-ENV DEBIAN_FRONTEND=noninteractive
 
 # install openssh-server, wget, and git
-RUN apt-get clean all && apt-get update && apt-get install -y python3.6 ipython3 python3-pip openssh-server wget git vim
-RUN pip3 install sparkdl numpy Pillow keras==2.2.0 tensorflow==1.10.0 tensorframes pandas kafka tensorflowonspark jieba h5py
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get clean all && apt-get update && apt-get install -y python3.6 ipython3 python3-pip openssh-server iputils-ping wget git vim 
+RUN pip3 install kafka
 
 
-RUN git clone https://github.com/OnionTraveler/hadoop-2.7.3-InstallPackage.git /tmp/hadoop-2.7.3-InstallPackage
+
+
+
+#========================= (for java -version 1.8.0_144) =========================#
+#Hadoop是用Java寫的，故安裝執行啟動Hadoop前，Java預先安裝在各節點且可執行是必要的！
+#========================= (下載jdk-8u144-linux-x64.tar.gz執行檔)
+RUN cd /tmp && wget https://mail-tp.fareoffice.com/java/jdk-8u144-linux-x64.tar.gz && tar -zxvf /tmp/jdk-8u144-linux-x64.tar.gz 
+RUN cd /tmp && mkdir /usr/java && mv /tmp/jdk1.8.0_144 /usr/java && ln -s /usr/java/jdk1.8.0_144/ /usr/java/java
+
+ENV JAVA_HOME /usr/java/java
+ENV JRE_HOME $JAVA_HOME/jre
+ENV CLASSPATH .:$JAVA_HOME/lib/dt.jar:$JAVA_HOME/lib/tools.jar:$JRE_HOME/lib/rt.jar
+ENV PATH $PATH:$JAVA_HOME/bin
+
+
+#========================= (for hadoop-2.7.3) =========================#
+#HADOOP安裝過程:
+#========================= (下載hadoop-2.7.3.tar.gz執行檔)
+RUN cd /tmp && wget https://archive.apache.org/dist/hadoop/core/hadoop-2.7.3/hadoop-2.7.3.tar.gz
+RUN cd /tmp && tar -zxvf /tmp/hadoop-2.7.3.tar.gz && mv hadoop-2.7.3 /opt && ln -s /opt/hadoop-2.7.3 /opt/hadoop
+
+ENV HADOOP_HOME=/opt/hadoop/
+ENV HADOOP_MAPRED_HOME=$HADOOP_HOME
+ENV HADOOP_COMMON_HOME=$HADOOP_HOME
+ENV HADOOP_HDFS_HOME=$HADOOP_HOME
+ENV YARN_HOME=$HADOOP_HOME
+ENV HADOOP_CONF_DIR=$HADOOP_HOME/etc/hadoop
+ENV YARN_CONF_DIR=$HADOOP_HOME/etc/hadoop
+ENV PATH=$PATH:$HADOOP_HOME/bin:$HADOOP_HOME/sbin
+ENV HADOOP_COMMON_LIB_NATIVE_DIR=$HADOOP_HOME/lib/native
+ENV HADOOP_OPTS="-Djava.library.path=$HADOOP_HOME/lib"
+
+RUN echo 'export JAVA_HOME=/usr/java/java' >> /opt/hadoop/libexec/hadoop-config.sh
+
+RUN echo 'export JAVA_HOME=/usr/java/java' >> /opt/hadoop-2.7.3/etc/hadoop/hadoop-env.sh && \
+echo 'export HADOOP_HOME=/opt/hadoop' >> /opt/hadoop-2.7.3/etc/hadoop/hadoop-env.sh && \
+echo 'export PATH=$PATH:$HADOOP_HOME/bin' >> /opt/hadoop-2.7.3/etc/hadoop/hadoop-env.sh && \
+echo 'export PATH=$PATH:$HADOOP_HOME/sbin' >> /opt/hadoop-2.7.3/etc/hadoop/hadoop-env.sh && \
+echo 'export HDFS_NAMENODE_USER=root' >> /opt/hadoop-2.7.3/etc/hadoop/hadoop-env.sh && \
+echo 'export HDFS_DATANODE_USER=root' >> /opt/hadoop-2.7.3/etc/hadoop/hadoop-env.sh && \
+echo 'export HDFS_JOURNALNODE_USER=root' >> /opt/hadoop-2.7.3/etc/hadoop/hadoop-env.sh && \
+echo 'export YARN_RESOURCEMANAGER_USER=root' >> /opt/hadoop-2.7.3/etc/hadoop/hadoop-env.sh && \
+echo 'export YARN_NODEMANAGER_USER=root' >> /opt/hadoop-2.7.3/etc/hadoop/hadoop-env.sh && \
+echo 'export HDFS_ZKFC_USER=root' >> /opt/hadoop-2.7.3/etc/hadoop/hadoop-env.sh && \
+echo 'export HADOOP_MAPRED_HOME=$HADOOP_HOME' >> /opt/hadoop-2.7.3/etc/hadoop/hadoop-env.sh && \
+echo 'export HADOOP_COMMON_HOME=$HADOOP_HOME' >> /opt/hadoop-2.7.3/etc/hadoop/hadoop-env.sh && \
+echo 'export HADOOP_HDFS_HOME=$HADOOP_HOME' >> /opt/hadoop-2.7.3/etc/hadoop/hadoop-env.sh && \
+echo 'export YARN_HOME=$HADOOP_HOME'  >> /opt/hadoop-2.7.3/etc/hadoop/hadoop-env.sh && \
+echo 'export HADOOP_COMMON_LIB_NATIVE_DIR=$HADOOP_HOME/lib/native' >> /opt/hadoop-2.7.3/etc/hadoop/hadoop-env.sh && \
+echo 'export HADOOP_OPTS="-Djava.library.path=$HADOOP_HOME/lib"' >> /opt/hadoop-2.7.3/etc/hadoop/hadoop-env.sh
+
+
+#========================= (修正hadoop設定檔(此修正是為了允許建立HA(High Availability)高可用方案))
+RUN cd /tmp && git clone https://github.com/orozcohsu/hadoop-2.7.3-ha.git
+RUN alias cp='cp -f' && cd /tmp && cp /tmp/hadoop-2.7.3-ha/* /opt/hadoop-2.7.3/etc/hadoop/ && alias cp='cp -i' && rm -rf /tmp/hadoop-2.7.3-ha
+
+
+#ZOOKEEPER安裝過程:
+#========================= (下載zookeeper-3.4.9執行檔)
+RUN cd /tmp && wget https://archive.apache.org/dist/zookeeper/zookeeper-3.4.9/zookeeper-3.4.9.tar.gz
+RUN cd /tmp && tar -zxvf zookeeper-3.4.9.tar.gz && mv zookeeper-3.4.9 /opt && ln -s /opt/zookeeper-3.4.9 /opt/zookeeper
+RUN cp /opt/zookeeper/conf/zoo_sample.cfg /opt/zookeeper/conf/zoo.cfg && sed -i "s/dataDir=\/tmp\/zookeeper/dataDir=\/opt\/zookeeper/g" /opt/zookeeper/conf/zoo.cfg
+
+
+#建立hdfs namenode:
+#========================= (新增hdfs所需使用的目錄)
+RUN mkdir -p $HADOOP_HOME/tmp && mkdir -p $HADOOP_HOME/tmp/dfs/name && mkdir -p $HADOOP_HOME/tmp/dfs/data && mkdir -p $HADOOP_HOME/tmp/journal && chmod 777 $HADOOP_HOME/tmp
+
+
+#========================= (siao sheng miè ji)
+RUN rm -rf /tmp/jdk-8u144-linux-x64.tar.gz
+RUN rm -rf /tmp/hadoop-2.7.3.tar.gz
+RUN rm -rf /tmp/zookeeper-3.4.9.tar.gz
+
+
+
+
+
+#========================= (for scala-2.11.8) =========================#
+#Spark是用Scala寫的，故安裝執行啟動Spark前，Scala預先安裝在各節點且可執行是必要的！
+#========================= (下載scala-2.11.8執行檔)
+RUN cd /tmp && wget https://downloads.lightbend.com/scala/2.11.8/scala-2.11.8.tgz && tar zxvf /tmp/scala-2.11.8.tgz
+RUN cd /tmp && mkdir /usr/scala && mv scala-2.11.8 /usr/scala && ln -s /usr/scala/scala-2.11.8 /usr/scala/scala
+
+ENV SCALA_HOME /usr/scala/scala
+ENV PATH $SCALA_HOME/bin:$PATH
+
+
+#========================= (for spark-2.3.1-bin-hadoop2.7) =========================#
+RUN cd /tmp && wget https://archive.apache.org/dist/spark/spark-2.3.1/spark-2.3.1-bin-hadoop2.7.tgz
+RUN cd /tmp && tar zxvf /tmp/spark-2.3.1-bin-hadoop2.7.tgz && mv spark-2.3.1-bin-hadoop2.7 /opt && ln -s /opt/spark-2.3.1-bin-hadoop2.7 /opt/spark
+
+ENV SPARK_HOME=/opt/spark-2.3.1-bin-hadoop2.7
+ENV PATH=$SPARK_HOME/bin:$PATH
+ENV PYSPARK_PYTHON=python3
+ENV PYSPARK_DRIVER_PYTHON=ipython3
+
+
+#========================= (spark啟動時(start-all.sh)所讀取的環境變數設定)
+RUN cp /opt/spark-2.3.1-bin-hadoop2.7/conf/spark-env.sh.template /opt/spark-2.3.1-bin-hadoop2.7/conf/spark-env.sh 
+RUN echo 'export SCALA_HOME=/usr/scala/scala' >> /opt/spark-2.3.1-bin-hadoop2.7/conf/spark-env.sh && \
+echo 'export JAVA_HOME=/usr/java/java' >> /opt/spark-2.3.1-bin-hadoop2.7/conf/spark-env.sh && \
+echo 'export HADOOP_HOME=/opt/hadoop' >> /opt/spark-2.3.1-bin-hadoop2.7/conf/spark-env.sh && \
+echo 'export HADOOP_CONF_DIR=$HADOOP_HOME/etc/hadoop' >> /opt/spark-2.3.1-bin-hadoop2.7/conf/spark-env.sh && \
+echo 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HADOOP_HOME/lib/native' >> /opt/spark-2.3.1-bin-hadoop2.7/conf/spark-env.sh && \
+echo 'SPARK_MASTER_IP=$ipmaster' >> /opt/spark-2.3.1-bin-hadoop2.7/conf/spark-env.sh && \
+echo 'SPARK_LOCAL_DIRS=/opt/spark-2.3.1-bin-hadoop2.7/' >> /opt/spark-2.3.1-bin-hadoop2.7/conf/spark-env.sh && \
+echo 'SPARK_DRIVER_MEMORY=2G' >>  /opt/spark-2.3.1-bin-hadoop2.7/conf/spark-env.sh
+
+
+#========================= (spark啟動時(start-all.sh)所讀取節點IP的位置設定) (那空白不能略!!)
+RUN cp /opt/spark-2.3.1-bin-hadoop2.7/conf/slaves.template /opt/spark-2.3.1-bin-hadoop2.7/conf/slaves
+RUN echo "$ipslaver1" >> /opt/spark-2.3.1-bin-hadoop2.7/conf/slaves && \
+echo "$ipslaver2" >> /opt/spark-2.3.1-bin-hadoop2.7/conf/slaves
+
+
+#========================= (spark啟動時(start-all.sh)其預設會使用"python"這個指令連結，故須將其建立軟連結(導向)至python3使得packages匯入等預設操作不會因python版本不同而出錯)
+RUN ln -s /usr/bin/python3 /usr/bin/python && ln -s /usr/bin/pip3 /usr/bin/pip
+
+
+
+
+
+#========================= (siao sheng miè ji)
+RUN rm -rf /tmp/scala-2.11.8.tgz
+RUN rm /tmp/spark-2.3.1-bin-hadoop2.7.tgz 
+
+
+
+
 
 # ssh without key
 RUN ssh-keygen -t rsa -f ~/.ssh/id_rsa -P '' && \
-    cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys && \
-    echo 'sudo docker inspect  --format "{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}" 「容器名稱或容器ID」'  >> containerIP.txt
+    cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
+
 
 ENTRYPOINT ["/bin/bash", "-c", "service ssh start; /bin/bash"]
 
 CMD service ssh status && /bin/bash
+
+
