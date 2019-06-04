@@ -11,6 +11,13 @@ RUN apt-get clean all && apt-get update && apt-get install -y python3.6 ipython3
 RUN pip3 install numpy pandas Pillow jieba keras kafka tensorflow tensorflowonspark
 
 
+# install locales (語系檔案) (安裝中文讀取顯示)
+RUN apt-get install -y locales && locale-gen zh_CN && locale-gen zh_CN.utf8
+ENV LANG=zh_CN.UTF-8
+ENV LC_ALL=zh_CN.UTF-8
+ENV LANGUAGE=zh_CN.UTF-8
+
+
 
 
 
